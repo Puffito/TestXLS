@@ -12,6 +12,7 @@ namespace TestXLS
         string pathApp;
         string filePath;
         string tipoArchivo;
+        string nombrePLC;
         SyIntegradores Integradores;
 
         public Form1()
@@ -59,10 +60,28 @@ namespace TestXLS
                 {
                     xmlIntegrador = ListaIntegradores[i] as XmlElement;
 
-                    Integrador = new SyIntegrador(xmlIntegrador.GetAttribute("nombre"), xmlIntegrador.GetAttribute("tipo"), xmlIntegrador.GetAttribute("equipos"),
-                        xmlIntegrador.GetAttribute("indice"), xmlIntegrador.GetAttribute("indice2"));
+                    string nombre = xmlIntegrador.GetAttribute("nombre");
+                    string tipo = xmlIntegrador.GetAttribute("tipo");
+                    string equipos = xmlIntegrador.GetAttribute("equipos");
+                    string indice = xmlIntegrador.GetAttribute("indice");
+                    string indice2 = xmlIntegrador.GetAttribute("indice2");
 
+                    // Posibles valores de indice3 e indice4
+                    string? indice3 = xmlIntegrador.GetAttribute("indice3");
+                    string? indice4 = xmlIntegrador.GetAttribute("indice4");
+
+                    if (!string.IsNullOrEmpty(indice3) && !string.IsNullOrEmpty(indice4))
+                    {
+                        // Construir con indice3 e indice4
+                        Integrador = new SyIntegrador(nombre, tipo, equipos, indice, indice2, indice3, indice4);
+                    }
+                    else
+                    {
+                        // Construir sin indice3 e indice4
+                        Integrador = new SyIntegrador(nombre, tipo, equipos, indice, indice2);
+                    }
                     Integradores.Listado.Add(Integrador);
+
                 }
 
                 /*
@@ -77,10 +96,10 @@ namespace TestXLS
         }
 
         #region Lectura de archivo
-        public Dictionary<string, Dictionary<string, List<string>>> ReadDataFromSheet(string filePath, string nombreIntegrador)
+        public Dictionary<string, Dictionary<string, List<string>>> ReadDataFromSheetDurkopp(string filePath)
         {
             // Encontrar el integrador seleccionado
-            SyIntegrador integradorSeleccionado = Integradores.Listado.Find(x => x.nombre == nombreIntegrador);
+            SyIntegrador integradorSeleccionado = Integradores.Listado.Find(x => x.nombre == "durkopp");
 
             // Extraer las celdas de inicio de los datos del integrador seleccionado
             string componentNameCell = integradorSeleccionado.tipo;
@@ -110,7 +129,7 @@ namespace TestXLS
                 if (xlWorksheet.Visible == Excel.XlSheetVisibility.xlSheetVisible && xlWorksheet.Name.All(char.IsDigit))
                 {
                     // Sacar el nombre del componente de la celda especificada
-                    string componentType = xlWorksheet.Range[componentNameCell].Value2?.ToString();
+                    string componentType = xlWorksheet.Range[componentNameCell].Value2.ToString();
 
                     // Si el nombre del componente no está en el diccionario, añadirlo
                     extractedData.Add(componentType, new Dictionary<string, List<string>>());
@@ -155,14 +174,102 @@ namespace TestXLS
             return extractedData;
         }
 
+        public Dictionary<string, Dictionary<string, List<string>>> ReadDataFromSheetTgw(string filePath)
+        {
+            // Encontrar el integrador seleccionado
+            SyIntegrador integradorSeleccionado = Integradores.Listado.Find(x => x.nombre == "tgw");
+
+            // Extraer las celdas de inicio de los datos del integrador seleccionado
+            string plcIDNameCell = integradorSeleccionado.tipo;
+            string moduleNumberStartCell = integradorSeleccionado.equipos;
+            string symbolicNameStartCell = integradorSeleccionado.indice;
+            string layPositionStartCell = integradorSeleccionado.indice2;
+            string lacStartCell = integradorSeleccionado.indice3;
+            string moduleTextStartCell = integradorSeleccionado.indice4;
+
+            // Convertir las celdas de inicio de los datos a índices de fila y columna
+            int moduleNumberStartRow = int.Parse(moduleNumberStartCell.Substring(1));
+            int moduleNumberStartColumn = calcularLetra(moduleNumberStartCell.Substring(0, 1));
+            int symbolicNameStartRow = int.Parse(symbolicNameStartCell.Substring(1));
+            int symbolicNameStartColumn = calcularLetra(symbolicNameStartCell.Substring(0, 1));
+            int layPositionStartRow = int.Parse(layPositionStartCell.Substring(1));
+            int layPositionStartColumn = calcularLetra(layPositionStartCell.Substring(0, 1));
+            int lacStartRow = int.Parse(lacStartCell.Substring(1));
+            int lacStartColumn = calcularLetra(lacStartCell.Substring(0, 1));
+            int moduleTextStartRow = int.Parse(moduleTextStartCell.Substring(1));
+            int moduleTextStartColumn = calcularLetra(moduleTextStartCell.Substring(0, 1));
+
+            // Inicializar un diccionario para almacenar los datos extraídos
+            Dictionary<string, Dictionary<string, List<string>>> extractedData = new Dictionary<string, Dictionary<string, List<string>>>();
+
+            // Crear una instancia de la aplicación Excel y abrir el libro de trabajo
+            Excel.Application xlApp = new Excel.Application();
+            Excel.Workbook xlWorkbook = xlApp.Workbooks.Open(filePath, ReadOnly: true);
+
+            // Iterar sobre todas las hojas del libro de trabajo
+            foreach (Excel.Worksheet xlWorksheet in xlWorkbook.Worksheets)
+            {
+                // Mirar si la hoja es visible
+                if (xlWorksheet.Visible == Excel.XlSheetVisibility.xlSheetVisible)
+                {
+                    // Sacar el nombre del componente de la celda especificada
+                    string plcID = xlWorksheet.Range[plcIDNameCell].Value2.ToString();
+
+                    // Si el nombre del componente no está en el diccionario, añadirlo
+                    extractedData.Add(plcID, new Dictionary<string, List<string>>());
+
+                    // Encontrar la última fila de la hoja de cálculo
+                    int lastRow = xlWorksheet.Cells.SpecialCells(Excel.XlCellType.xlCellTypeLastCell).Row;
+
+                    // Inicializar listas para almacenar los nombres, índices y índices secundarios
+                    List<string> modNumber = new List<string>();
+                    List<string> symName = new List<string>();
+                    List<string> layPosition = new List<string>();
+                    List<string> lac = new List<string>();
+                    List<string> moduleText = new List<string>();
+
+                    // Extraer los nombres, índices y índices secundarios de las celdas especificadas
+                    for (int i = moduleNumberStartRow; i <= lastRow; i++)
+                    {
+                        string layPosValue = xlWorksheet.Cells[i, layPositionStartColumn].Value2?.ToString();
+
+                        if (!string.IsNullOrEmpty(layPosValue))
+                        {
+                            layPosition.Add(layPosValue);
+                            modNumber.Add(xlWorksheet.Cells[i, moduleNumberStartColumn].Value2?.ToString() ?? "");
+                            symName.Add(xlWorksheet.Cells[i, symbolicNameStartColumn].Value2?.ToString() ?? "");
+                            lac.Add(xlWorksheet.Cells[i, lacStartColumn].Value2?.ToString() ?? "");
+                            moduleText.Add(xlWorksheet.Cells[i, moduleTextStartColumn].Value2?.ToString() ?? "");
+                        }
+
+                    }
+                    // Añadir los datos extraídos al diccionario
+                    extractedData[plcID].Add("ModuleNumber", modNumber);
+                    extractedData[plcID].Add("SymbolicName", symName);
+                    extractedData[plcID].Add("LayPosition", layPosition);
+                    extractedData[plcID].Add("LAC", lac);
+                    extractedData[plcID].Add("ModuleText", moduleText);
+                }
+            }
+
+            // Cerrar el libro de trabajo y la aplicación Excel
+            xlWorkbook.Close(false);
+            xlApp.Quit();
+
+            // Liberar los recursos COM
+            System.Runtime.InteropServices.Marshal.ReleaseComObject(xlWorkbook);
+            System.Runtime.InteropServices.Marshal.ReleaseComObject(xlApp);
+
+            //Devolver los datos extraídos
+            return extractedData;
+        }
+
         #endregion
 
         #region Guardado de datos
-            
-        private void WriteToCSV(Dictionary<string, Dictionary<string, List<string>>> extractedData, string excelFileName, bool add, string? fileToAdd = "C:/mv/mcmscadaopc1.csv")
+
+        private void WriteToCSVDurkopp(Dictionary<string, Dictionary<string, List<string>>> extractedData, bool add, string? fileToAdd = "C:/mv/mcmscadaopc1.csv")
         {
-            // Cogemos el nombre del archivo de Excel y sacamos la parte que nos interesa
-            string fileName = ExtractFileName(excelFileName);
 
             // Define el encabezado del archivo CSV
             string header = "CONEXIÓN;AREA;ZONA;PLANTA;EQL;TIPO;TYPE;EQUIPO;POSI;AUX;CLASE;DIRECCIONAMIENTO;RUN;BOX DETECTED;CLASE AUX.";
@@ -185,17 +292,17 @@ namespace TestXLS
 
                     for (int i = 0; i < names.Count; i++)
                     {
-                        writer.Write(fileName); // CONEXIÓN
+                        writer.Write(nombrePLC); // CONEXIÓN
                         writer.Write(";");
                         writer.Write(";"); // AREA
-                        writer.Write(fileName); // ZONA
+                        writer.Write(nombrePLC); // ZONA
                         writer.Write(";");
                         writer.Write(";"); // PLANTA
                         writer.Write(";"); // EQL
                         writer.Write(componentType); // TIPO
                         writer.Write(";");
                         writer.Write(";"); // TYPE
-                        writer.Write(fileName + "_" + names[i]); // EQUIPO
+                        writer.Write(nombrePLC + "_" + names[i]); // EQUIPO
                         writer.Write(";");
                         writer.Write(";"); // POSI
                         writer.Write(";"); // AUX
@@ -222,6 +329,120 @@ namespace TestXLS
 
                             writer.Write(secondaryIndexValue);
                         }
+
+                        writer.Write(";"); // RUN
+                        writer.Write(";"); // BOX DETECTED
+                        writer.WriteLine(";"); // CLASE AUX
+                    }
+                }
+            }
+        }
+
+        private void WriteToCSVTgw(Dictionary<string, Dictionary<string, List<string>>> extractedData, bool add, string? fileToAdd = "C:/mv/mcmscadaopc1.csv")
+        {
+
+            // Define el encabezado del archivo CSV
+            string header = "CONEXIÓN;AREA;ZONA;PLANTA;EQL;TIPO;TYPE;EQUIPO;POSI;AUX;CLASE;DIRECCIONAMIENTO;RUN;BOX DETECTED;CLASE AUX.";
+
+            // Escritura del encabezado en el archivo CSV
+            using (StreamWriter writer = new StreamWriter(fileToAdd, add, Encoding.UTF8))
+            {
+                if (!add) writer.WriteLine(header);
+
+                // Write data to the CSV file
+                foreach (var sheetEntry in extractedData)
+                {
+                    string plcID = sheetEntry.Key;
+                    Dictionary<string, List<string>> sheetData = sheetEntry.Value;
+
+                    List<string> modNumber = sheetData["ModuleNumber"];
+                    List<string> symName = sheetData["SymbolicName"];
+                    List<string> layPosition = sheetData["LayPosition"];
+                    List<string> lac = sheetData["LAC"];
+                    List<string> moduleText = sheetData["ModuleText"];
+
+                    for (int i = 0; i < modNumber.Count; i++)
+                    {
+                        writer.Write(plcID); // CONEXIÓN
+                        writer.Write(";");
+                        writer.Write(";"); // AREA
+                        writer.Write(plcID); // ZONA
+                        writer.Write(";");
+                        writer.Write(";"); // PLANTA
+
+                        //EQL
+                        if (string.IsNullOrEmpty(lac[i]))
+                        {
+                            writer.Write(plcID);
+                        }
+                        else { writer.Write(lac[i]);}
+                        writer.Write(";");
+
+                        // TIPO (Si moduleText contiene Conveyor = CONVEYOR, Scanner = SCANNER y Npoint = MFS y (PWT) = PWT)
+                        if (moduleText[i].ToUpper().Contains("CONVEYOR"))
+                        {
+                            writer.Write("CONVEYOR");
+                        }
+                        else if (moduleText[i].ToUpper().Contains("SCANNER"))
+                        {
+                            writer.Write("SCANNER");
+                        }
+                        else if (moduleText[i].ToUpper().Contains("NPOINT"))
+                        {
+                            writer.Write("MFS");
+                        }
+                        else if (moduleText[i].ToUpper().Contains("PWT"))
+                        {
+                            writer.Write("PWT");
+                        }
+                        else
+                        {
+                            writer.Write(moduleText[i]);
+                        }
+                        writer.Write(";");
+
+                        writer.Write(";"); // TYPE
+                        writer.Write(modNumber[i]); // EQUIPO
+                        writer.Write(";");
+                        writer.Write(";"); // POSI
+                        writer.Write(";"); // AUX
+
+                        // CLASE (Escribir el nombrePLC + el nombre simbólico quitando todo lo anterior al segundo guion bajo)
+                        string symbolicName = symName[i];
+                        int underscoreIndex = symbolicName.IndexOf("_");
+                        if (underscoreIndex != -1)
+                        {
+                            // Encontrar el segundo guion bajo
+                            int secondUnderscoreIndex = symbolicName.IndexOf("_", underscoreIndex + 1);
+                            if (secondUnderscoreIndex != -1)
+                            {
+                                // Extraer el nombre simbólico después del segundo guion bajo
+                                writer.Write(nombrePLC + "_" + symbolicName.Substring(secondUnderscoreIndex + 1));
+                            }
+                            else
+                            {
+                                // Si no se encuentra un segundo guion bajo, escribir el nombre simbólico completo
+                                writer.Write(nombrePLC + "_" + symbolicName);
+                            }
+                        }
+                        else
+                        {
+                            writer.Write(nombrePLC + "_" + symbolicName);
+                        }
+                        writer.Write(";");
+
+                        // Escribe el numero que se encuentra después del punto en layPosition y le suma mil, despues lo escribe bajo DIRECCIONAMIENTO
+                        string layPosValue = layPosition[i];
+                        int dotIndex = layPosValue.IndexOf(".");
+                        if (dotIndex != -1)
+                        {
+                            string layPosNumber = layPosValue.Substring(dotIndex + 1);
+                            if (int.TryParse(layPosNumber, out int layPosNumberInt))
+                            {
+                                writer.Write((layPosNumberInt + 1000).ToString());
+                            }
+                        }   
+                        writer.Write(";");
 
                         writer.Write(";"); // RUN
                         writer.Write(";"); // BOX DETECTED
@@ -283,6 +504,8 @@ namespace TestXLS
 
                     tipoArchivo = secondForm.tipoArchivo;
 
+                    nombrePLC = secondForm.PLC;
+
                     textBox1.Text = filePath;
                 }
             }
@@ -298,8 +521,16 @@ namespace TestXLS
                 if (fileDialog.ShowDialog() == DialogResult.OK)
                 {
                     string toFile = fileDialog.FileName;
-                    WriteToCSV(ReadDataFromSheet(filePath, tipoArchivo), filePath, true, toFile);
-                    MessageBox.Show("Archivo guardado correctamente", "Completado", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+
+                    if(tipoArchivo == "tgw")
+                    {
+                        WriteToCSVTgw(ReadDataFromSheetTgw(filePath), true, toFile);
+                        MessageBox.Show("Archivo guardado correctamente", "Completado", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    }
+                    else if(tipoArchivo == "durkopp"){
+                        WriteToCSVDurkopp(ReadDataFromSheetDurkopp(filePath), true, toFile);
+                        MessageBox.Show("Archivo guardado correctamente", "Completado", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    }
                 }
             }
         }
@@ -308,9 +539,17 @@ namespace TestXLS
         {
             if (!string.IsNullOrEmpty(filePath))
             {
-                string toFile = filePath.Replace(".xlsx", ".csv");
-                WriteToCSV(ReadDataFromSheet(filePath, tipoArchivo), filePath, false);
-                MessageBox.Show("Archivo guardado correctamente", "Completado", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                //string toFile = filePath.Replace(".xlsx", ".csv");
+                if (tipoArchivo == "tgw")
+                {
+                    WriteToCSVTgw(ReadDataFromSheetTgw(filePath), false);
+                    MessageBox.Show("Archivo guardado correctamente", "Completado", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                }
+                else if (tipoArchivo == "durkopp")
+                {
+                    WriteToCSVDurkopp(ReadDataFromSheetDurkopp(filePath), false);
+                    MessageBox.Show("Archivo guardado correctamente", "Completado", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                }
             }
         }
         #endregion

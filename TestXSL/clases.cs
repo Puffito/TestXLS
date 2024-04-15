@@ -22,6 +22,8 @@ namespace TestXLS
         private string xequipos;
         private string xindice;
         private string xindice2;
+        private string xindice3;
+        private string xindice4;
 
         public SyIntegrador(string nombre, string tipo, string equipos, string indice, string indice2)
         {
@@ -30,6 +32,16 @@ namespace TestXLS
             xequipos = equipos;
             xindice = indice;
             xindice2 = indice2;
+        }
+        public SyIntegrador(string nombre, string tipo, string equipos, string indice, string indice2, string indice3, string indice4)
+        {
+            xnombre = nombre;
+            xtipo = tipo;
+            xequipos = equipos;
+            xindice = indice;
+            xindice2 = indice2;
+            xindice3 = indice3;
+            xindice4 = indice4;
         }
 
         public string nombre
@@ -85,6 +97,28 @@ namespace TestXLS
             private set
             {
                 xindice2 = value;
+            }
+        }
+        public string indice3
+        {
+            get
+            {
+                return xindice3;
+            }
+            private set
+            {
+                xindice3 = value;
+            }
+        }
+        public string indice4
+        {
+            get
+            {
+                return xindice4;
+            }
+            private set
+            {
+                xindice4 = value;
             }
         }
     }

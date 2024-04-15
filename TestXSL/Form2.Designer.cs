@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             nombre_Box = new ComboBox();
-            label1 = new Label();
+            textoTipo = new Label();
             nombrePLC = new TextBox();
             b_cargar = new Button();
             SuspendLayout();
@@ -46,15 +46,15 @@
             nombre_Box.Text = "durkopp";
             nombre_Box.SelectedIndexChanged += nombre_Box_SelectedIndexChanged;
             // 
-            // label1
+            // textoTipo
             // 
-            label1.AutoSize = true;
-            label1.Font = new Font("Segoe UI", 13.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
-            label1.Location = new Point(259, 173);
-            label1.Name = "label1";
-            label1.Size = new Size(141, 31);
-            label1.TabIndex = 1;
-            label1.Text = "Nombre PLC";
+            textoTipo.AutoSize = true;
+            textoTipo.Font = new Font("Segoe UI", 13.8F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            textoTipo.Location = new Point(259, 173);
+            textoTipo.Name = "textoTipo";
+            textoTipo.Size = new Size(141, 31);
+            textoTipo.TabIndex = 1;
+            textoTipo.Text = "Nombre PLC";
             // 
             // nombrePLC
             // 
@@ -81,7 +81,7 @@
             ClientSize = new Size(800, 450);
             Controls.Add(b_cargar);
             Controls.Add(nombrePLC);
-            Controls.Add(label1);
+            Controls.Add(textoTipo);
             Controls.Add(nombre_Box);
             Name = "Form2";
             Text = "Form2";
@@ -92,7 +92,7 @@
         #endregion
 
         private ComboBox nombre_Box;
-        private Label label1;
+        private Label textoTipo;
         private TextBox nombrePLC;
         private Button b_cargar;
     }
